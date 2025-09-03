@@ -35,7 +35,19 @@ cargo run
 Repeat these steps for the `world_server` folder to kick off a world server. You should now be able to log in with user `test` with password `test` using a 3.3.5(12340) game client and create your first character.
 
 ### DBC files
-The world server depends on [DBC](https://wowdev.wiki/DBC) files. You will have to extract these from a WoW client build yourself. There are many tools available for this job in other open source projects, for example [this one](https://github.com/mangos/Extractor_projects/tree/master/map-extractor). After extracting the DBC files from the WoW client, modify the `.env` key `BDC_FOLDER_PATH` to point the the folder containing the DBC files.
+The world server depends on [DBC](https://wowdev.wiki/DBC) files. You can extract these directly from a WoW client build using the included `dbc-extractor` tool. Set the following environment variables to specify the WoW client directory and the output directory for DBC files:
+
+```sh
+# Directory containing a WoW client
+export WOTLK_PATH="/path/to/WoW-3.3.5"
+
+# Directory where to extract DBC files
+export DBC_FOLDER_PATH="/path/to/dbc"
+
+cargo run --bin dbc-extractor
+```
+
+Alternatively, you may use other open source tools, for example [this one](https://github.com/mangos/Extractor_projects/tree/master/map-extractor). After extracting the DBC files, modify the `.env` key `DBC_FOLDER_PATH` to point to the folder containing the DBC files.
 
 ### After initial setup
 Some progress on the server code may change the database tables. In that case you will have to go into the database folders and run to bring your database up to the latest structure. This will wipe your database. This shouldn't be an issue since the server is nowhere near being able to host actual players anyway. 
