@@ -5,7 +5,6 @@ use std::{
     process::{exit, Command},
 };
 
-use log;
 use which::which;
 
 /// Main entry point for the DBC extractor CLI tool.
@@ -61,7 +60,7 @@ fn ensure_dbc<P: AsRef<Path>>(dbc_dir_path: P) -> bool {
         return false;
     }
 
-    static REQUIRED_DBC_FILES: &'static [&'static str] = &[
+    static REQUIRED_DBC_FILES: &[&str] = &[
         "ChrRaces.dbc",
         "ChrClasses.dbc",
         "Map.dbc",
@@ -108,7 +107,7 @@ fn extract_dbc<P: AsRef<Path>>(dbc_folder_path: P) {
     let dbc_folder_path = dbc_folder_path.as_ref();
     if !dbc_folder_path.exists() {
         log::info!("Creating DBC folder at {}", dbc_folder_path.display());
-        fs::create_dir_all(&dbc_folder_path).expect("Failed to create DBC folder");
+        fs::create_dir_all(dbc_folder_path).expect("Failed to create DBC folder");
     }
 
     let extract_dbc_args = [
@@ -127,7 +126,7 @@ fn extract_dbc<P: AsRef<Path>>(dbc_folder_path: P) {
         log::info!("Extracting DBC from {}", wotlk_mpq_path.display());
 
         let status = Command::new("warcraft-rs")
-            .args(&extract_dbc_args)
+            .args(extract_dbc_args)
             .arg(&wotlk_mpq)
             .current_dir(&wotlk_data_path)
             .status()
@@ -223,7 +222,7 @@ fn get_mpq_paths<P: AsRef<Path>>(wotlk_data_path: P) -> Vec<String> {
 /// Searches for known locale folders and returns the first found.
 /// Exits if no locale is found.
 fn get_locale<P: AsRef<Path>>(wotlk_data_path: P) -> &'static str {
-    static LOCALES: &'static [&'static str] = &[
+    static LOCALES: &[&str] = &[
         "enUS", "deDE", "frFR", "esES", "itIT", "koKR", "zhCN", "zhTW", "ruRU",
     ];
     for locale in LOCALES {
