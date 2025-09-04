@@ -1,28 +1,37 @@
+//! Auth server entry point and I/O orchestration.
+//!
+//! Architecture overview:
+//! - Each accepted TCP connection is handled by a lightweight task that only deals with the
+//!   `TcpStream` (reading client packets and writing server responses).
+//! - A single `ClientManager` task owns and mutates all connection/authentication state.
+//! - Communication between per-connection tasks and the manager happens via Flume channels
+//!   (`flume::Sender/Receiver`). This message-passing model:
+//!   - avoids shared mutable state and explicit locking;
+//!   - lets socket tasks focus on networking only;
+//!   - keeps all state transitions serialized and exclusive within the manager task.
+
 use anyhow::Result;
-use async_io::Timer;
+use flume::Sender;
 use macro_rules_attribute::apply;
-use smol::lock::RwLock;
 use smol::net::{TcpListener, TcpStream};
 use smol_macros::main;
-use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Duration;
 use time::macros::format_description;
 use tracing::{error, info};
 use tracing_subscriber::{fmt::time::UtcTime, EnvFilter};
+use wow_login_messages::ServerMessage;
 
 use wow_login_messages::version_8::opcodes::ClientOpcodeMessage;
 use wrath_auth_db::AuthDatabase;
 
-mod auth;
+//mod auth;
+mod client_manager;
 mod console_input;
 mod constants;
 mod realms;
 mod state;
 
-use crate::auth::{handle_logon_challenge_srp, handle_logon_proof_srp, handle_reconnect_challenge_srp, handle_reconnect_proof_srp};
-use crate::realms::handle_realm_list_request;
-use crate::state::{ActiveClients, ClientState};
+use crate::client_manager::{ClientEvent, ClientManager, ServerEvent};
 
 #[apply(main!)]
 async fn main() -> Result<()> {
@@ -40,92 +49,107 @@ async fn main() -> Result<()> {
     let db_connect_timeout = Duration::from_secs(std::env::var("DB_CONNECT_TIMEOUT_SECONDS")?.parse()?);
     let connect_string = std::env::var("AUTH_DATABASE_URL")?;
     let auth_db = std::sync::Arc::new(AuthDatabase::new(&connect_string, db_connect_timeout).await?);
-    let auth_reconnect_lifetime = std::env::var("AUTH_RECONNECT_LIFETIME")
-        .map(|x| x.parse::<u64>().unwrap_or(500))
-        .unwrap_or(500);
-    let clients = Arc::new(RwLock::new(HashMap::new()));
 
-    smol::spawn(reconnect_clients_cleaner(clients.clone(), Duration::from_secs(auth_reconnect_lifetime))).detach();
+    let (client_manager_sender, client_manager_receiver) = flume::unbounded();
+    let client_manager = ClientManager::new(auth_db.clone());
+    // The client manager runs on its own task and exclusively owns mutable authentication
+    // state. Per-connection tasks exchange messages with the manager over Flume channels,
+    // keeping I/O isolated from state updates and avoiding locks.
+    smol::spawn(client_manager.run(client_manager_receiver)).detach();
+
     smol::spawn(realms::receive_realm_pings(auth_db.clone())).detach();
     smol::spawn(console_input::process_console_commands(auth_db.clone())).detach();
 
     let tcp_listener = TcpListener::bind("127.0.0.1:3724").await?;
     loop {
         let (stream, _) = tcp_listener.accept().await?;
-        smol::spawn(handle_incoming_connection(stream, clients.clone(), auth_db.clone())).detach();
+        smol::spawn(handle_incoming_connection(stream, client_manager_sender.clone())).detach();
     }
 }
 
-async fn reconnect_clients_cleaner(clients: ActiveClients, timeout: Duration) -> Result<()> {
-    loop {
-        {
-            let mut clients = clients.write().await;
-            clients.retain(|_, srp_time| srp_time.created_at.elapsed() < timeout);
-        }
-        Timer::after(timeout).await;
-    }
-}
-
-async fn handle_incoming_connection(mut stream: TcpStream, clients: ActiveClients, auth_database: std::sync::Arc<AuthDatabase>) -> Result<()> {
-    let ip = stream.local_addr()?.to_string();
-    info!("Incoming connection on address {}", ip);
-    let mut client_state = Some(ClientState::Connected);
+/// Per-connection task: handles the socket and bridges messages to/from the client manager.
+///
+/// Design:
+/// - Sends a `ClientEvent::Connection` to register with the manager and obtain a
+///   `ServerEvent` receiver for replies.
+/// - Races between reading a packet from the client and receiving a server message from the
+///   manager, forwarding events to the other side.
+///
+/// Rationale for Flume:
+/// - Channels decouple I/O from state handling and avoid mutex contention.
+/// - The client manager serializes all state transitions on a single task.
+async fn handle_incoming_connection(mut stream: TcpStream, client_manager_sender: Sender<ClientEvent>) -> Result<()> {
+    let addr = stream.local_addr()?;
+    let (client_sender, client_receiver) = flume::unbounded();
+    let connection_event = ClientEvent::Connection { addr, client_sender };
+    client_manager_sender.send_async(connection_event).await?;
 
     let mut buf = [0u8; 1024];
     loop {
-        let read_len = stream.peek(&mut buf).await?;
-        if read_len < 1 {
-            info!("disconnect");
+        let event = smol::future::race(receive_from_client(&mut stream, &mut buf), receive_from_manager(&client_receiver)).await;
+
+        if let Err(e) = event {
+            error!("{e}");
+            info!("disconnect!");
             stream.shutdown(smol::net::Shutdown::Both)?;
             break;
-        }
-
-        let packet = ClientOpcodeMessage::astd_read(&mut stream).await?;
-
-        info!("Handling auth packet {} for client {}", packet, ip);
-
-        let result = match (client_state.take(), packet) {
-            (_, ClientOpcodeMessage::CMD_AUTH_LOGON_CHALLENGE(challenge)) => {
-                handle_logon_challenge_srp(&mut stream, &challenge, auth_database.clone()).await
-            }
-            (Some(ClientState::ChallengeProof { srp_proof, username }), ClientOpcodeMessage::CMD_AUTH_LOGON_PROOF(logon_proof)) => {
-                handle_logon_proof_srp(&mut stream, &logon_proof, srp_proof, username, clients.clone(), auth_database.clone()).await
-            }
-            (_, ClientOpcodeMessage::CMD_AUTH_LOGON_PROOF(_)) => {
-                info!("LogOnProof disconnect");
-                stream.shutdown(smol::net::Shutdown::Both)?;
-                break;
-            }
-            (Some(ClientState::LogOnProof { username }), ClientOpcodeMessage::CMD_REALM_LIST(_)) => {
-                handle_realm_list_request(&mut stream, username, auth_database.clone()).await
-            }
-            (_, ClientOpcodeMessage::CMD_REALM_LIST(_)) => {
-                info!("RealmListRequest disconnect");
-                stream.shutdown(smol::net::Shutdown::Both)?;
-                break;
-            }
-            (_, ClientOpcodeMessage::CMD_AUTH_RECONNECT_CHALLENGE(challenge)) => {
-                handle_reconnect_challenge_srp(&mut stream, &challenge, clients.clone()).await
-            }
-            (Some(ClientState::ReconnectProof { username }), ClientOpcodeMessage::CMD_AUTH_RECONNECT_PROOF(proof)) => {
-                handle_reconnect_proof_srp(&mut stream, &proof, username, clients.clone()).await
-            }
-            (_, ClientOpcodeMessage::CMD_AUTH_RECONNECT_PROOF(_)) => {
-                info!("ReconnectProof disconnect");
-                stream.shutdown(smol::net::Shutdown::Both)?;
-                break;
-            }
         };
 
-        match result {
-            Ok(state) => client_state = Some(state),
-            Err(e) => {
-                error!("Error {}", e);
-                info!("disconnect!");
-                stream.shutdown(smol::net::Shutdown::Both)?;
-                break;
+        match event.unwrap() {
+            ConnectionEvent::Client(packet) => {
+                info!("Handling auth packet {} for client {}", packet, addr);
+                let client_message = ClientEvent::Message {
+                    addr,
+                    packet: packet.clone(),
+                };
+                client_manager_sender.send_async(client_message).await?;
             }
+            ConnectionEvent::Server(server_event) => match server_event {
+                ServerEvent::AuthLogonProof(proof) => {
+                    proof.astd_write(&mut stream).await?;
+                }
+                ServerEvent::AuthLogonChallenge(challenge) => {
+                    challenge.astd_write(&mut stream).await?;
+                }
+                ServerEvent::AuthReconnectChallenge(reconnect_challenge) => {
+                    reconnect_challenge.astd_write(&mut stream).await?;
+                }
+                ServerEvent::AuthReconnectProof(reconnect_proof) => {
+                    reconnect_proof.astd_write(&mut stream).await?;
+                }
+                ServerEvent::RealmList(realm_list) => {
+                    realm_list.astd_write(&mut stream).await?;
+                }
+                ServerEvent::Disconnect => {
+                    info!("Disconnecting client {}", addr);
+                    stream.shutdown(smol::net::Shutdown::Both)?;
+                    break;
+                }
+            },
         }
     }
     Ok(())
+}
+
+/// Event multiplexing between client (socket) and server (manager) sides.
+enum ConnectionEvent {
+    Client(ClientOpcodeMessage),
+    Server(ServerEvent),
+}
+
+/// Read the next client message from the socket. Returns when a full `ClientOpcodeMessage`
+/// is available. Uses `peek` to avoid busy-waiting and then performs a framed read.
+async fn receive_from_client(stream: &mut TcpStream, buf: &mut [u8; 1024]) -> Result<ConnectionEvent> {
+    loop {
+        let read_len = stream.peek(buf).await?;
+        if read_len > 0 {
+            let packet = ClientOpcodeMessage::astd_read(stream).await?;
+            return Ok(ConnectionEvent::Client(packet));
+        }
+    }
+}
+
+/// Await the next `ServerEvent` from the client manager for this connection.
+async fn receive_from_manager(receiver: &flume::Receiver<ServerEvent>) -> Result<ConnectionEvent> {
+    Ok(ConnectionEvent::Server(receiver.recv_async().await?))
 }

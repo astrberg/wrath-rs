@@ -1,18 +1,8 @@
-use smol::lock::RwLock;
-use std::collections::HashMap;
-use std::time::Instant;
-use wow_srp::server::{SrpProof, SrpServer};
+use wow_srp::server::SrpProof;
 
 pub enum ClientState {
     Connected,
     ChallengeProof { srp_proof: SrpProof, username: String },
     ReconnectProof { username: String },
-    LogOnProof { username: String },
+    LogOnProof,
 }
-
-pub struct SrpServerTime {
-    pub srp_server: SrpServer,
-    pub created_at: Instant,
-}
-
-pub type ActiveClients = std::sync::Arc<RwLock<HashMap<String, SrpServerTime>>>;

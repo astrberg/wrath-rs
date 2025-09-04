@@ -1,16 +1,11 @@
-use crate::ClientState;
-
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_io::Timer;
 use byteorder::{BigEndian, ReadBytesExt};
 use smol::stream::StreamExt;
 use std::time::Instant;
 use tracing::warn;
 
-use wow_login_messages::{
-    version_8::{CMD_REALM_LIST_Server, Population, Realm, RealmCategory, RealmType, Realm_RealmFlag},
-    ServerMessage,
-};
+use wow_login_messages::version_8::{Population, Realm, RealmCategory, RealmType, Realm_RealmFlag};
 use wrath_auth_db::AuthDatabase;
 
 const HEARTBEAT_TIMEOUT_SECONDS: u64 = 15;
@@ -67,7 +62,7 @@ pub async fn receive_realm_pings(auth_db: std::sync::Arc<AuthDatabase>) -> Resul
     }
 }
 
-async fn get_realm_list(auth_database: std::sync::Arc<AuthDatabase>, account_id: u32) -> Result<Vec<Realm>> {
+pub async fn get_realm_list(auth_database: &std::sync::Arc<AuthDatabase>, account_id: u32) -> Result<Vec<Realm>> {
     //TODO(wmxd): it will be good idea to cache the database stuff
     let db_realms = auth_database.get_all_realms_with_num_characters(account_id).await?;
     let mut realms = Vec::with_capacity(db_realms.len());
@@ -95,19 +90,4 @@ async fn get_realm_list(auth_database: std::sync::Arc<AuthDatabase>, account_id:
     }
 
     Ok(realms)
-}
-
-pub async fn handle_realm_list_request(
-    stream: &mut smol::net::TcpStream,
-    username: String,
-    auth_database: std::sync::Arc<AuthDatabase>,
-) -> Result<ClientState> {
-    let account = match auth_database.get_account_by_username(&username).await? {
-        Some(acc) => acc,
-        None => return Err(anyhow!("Username is not in database")),
-    };
-    let realms = get_realm_list(auth_database, account.id).await?;
-    CMD_REALM_LIST_Server { realms }.astd_write(stream).await?;
-
-    Ok(ClientState::LogOnProof { username })
 }
