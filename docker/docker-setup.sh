@@ -42,10 +42,12 @@ sed -i "s/MARIADB_ROOT_PASSWORD:.*/MARIADB_ROOT_PASSWORD: $root_password/g" dock
 
 # Setup .env files for the world/auth servers, pointing at the docker container.
 cp auth_server/.env.template auth_server/.env
+cp databases/wrath-auth-db/.env.template databases/wrath-auth-db/.env
 sed -E -i "s/AUTH_DATABASE_URL=.+/AUTH_DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_auth\"/g" auth_server/.env
 sed -E -i "s/DATABASE_URL=.+/DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_auth\"/g" databases/wrath-auth-db/.env
 
 cp world_server/.env.template world_server/.env
+cp databases/wrath-realm-db/.env.template databases/wrath-realm-db/.env
 sed -E -i "s/AUTH_DATABASE_URL=.+/AUTH_DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_auth\"/g" world_server/.env
 sed -E -i "s/REALM_DATABASE_URL=.+/REALM_DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_realm\"/g" world_server/.env
 sed -E -i "s/DATABASE_URL=.+/DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_realm\"/g" databases/wrath-realm-db/.env
@@ -55,7 +57,7 @@ docker-compose down
 docker volume rm wrath-rs_wrath-rs-database
 
 # Bring up the DB.
-if ! docker-compose up -d db; then
+if ! docker-compose up -d db --wait; then
     echo "Failed to bring up the docker DB!"
     exit 1
 fi
