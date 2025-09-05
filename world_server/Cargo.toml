@@ -27,7 +27,7 @@ hex = { version = "0.4" }
 cmdparse = { version = "0.1" }
 
 wow_srp = { version = "0.6.0" }
-wow_dbc = { version = "0.2", features = ["wrath"] }
+wow_dbc = { version = "0.3", features = ["wrath"] }
 wow_world_base = { git="https://github.com/gtker/wow_messages.git", rev="55c2b641b7dbd09ca1de882f5fce814e4a91c068", features=["extended"] }
 wow_world_messages = { git="https://github.com/gtker/wow_messages.git", rev="55c2b641b7dbd09ca1de882f5fce814e4a91c068", features=["wrath", "async-std", "chrono"] }
 wow_items = { git="https://github.com/gtker/wow_messages.git", rev="55c2b641b7dbd09ca1de882f5fce814e4a91c068", features = ["wrath"] }

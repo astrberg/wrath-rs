@@ -20,7 +20,7 @@ async fn load_standard_dbc<T: wow_dbc::DbcTable>(folder_path: impl Into<&str>, t
     assert!(table.is_none());
 
     //Use async to read the file into memory
-    let filename = T::filename();
+    let filename = T::FILENAME;
     let path: PathBuf = [folder_path.into(), filename].iter().collect();
     info!("loading {}", path.to_str().unwrap());
     let file_handle = smol::fs::File::open(path).await?;
@@ -34,7 +34,7 @@ async fn load_standard_dbc<T: wow_dbc::DbcTable>(folder_path: impl Into<&str>, t
     if let Ok(t) = res {
         *table = Some(t);
     } else if let Err(e) = res {
-        error!("Failure while loading {}, {}", T::filename(), e);
+        error!("Failure while loading {}, {}", T::FILENAME, e);
     }
     Ok(())
 }
