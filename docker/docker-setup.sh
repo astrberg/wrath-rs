@@ -37,8 +37,9 @@ fi
 echo "Please enter a ROOT password for your MariaDB container:"
 read root_password
 
-# Change the MariaDB root password in the docker-compose file.
-sed -i "s/MARIADB_ROOT_PASSWORD:.*/MARIADB_ROOT_PASSWORD: $root_password/g" docker-compose.yml
+cat > .env <<EOF
+MARIADB_ROOT_PASSWORD=${root_password}
+EOF
 
 # Setup .env files for the world/auth servers, pointing at the docker container.
 cp auth_server/.env.template auth_server/.env
