@@ -77,6 +77,7 @@ Alternatively, if you just need to bring up a server quickly and don't need to i
 To enable the repository-provided pre-commit hook, run:
 
 ```sh
+chmod +x .githooks/pre-commit
 git config core.hooksPath .githooks
 ```
 
