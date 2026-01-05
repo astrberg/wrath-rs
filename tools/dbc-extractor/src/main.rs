@@ -12,7 +12,7 @@ use which::which;
 /// This function checks for required DBC files, and if missing, attempts extraction,
 /// and will exit with an error if extraction fails or required files are still missing.
 fn main() {
-    let env = env_logger::Env::default().filter_or("RUST_LOG", "warn");
+    let env = env_logger::Env::default().filter_or("RUST_LOG", "info");
     env_logger::init_from_env(env);
 
     let dbc_folder_path = get_dbc_folder_path();
@@ -91,10 +91,12 @@ fn extract_dbc<P: AsRef<Path>>(dbc_folder_path: P) {
     let mut warcraft_rs = which("warcraft-rs");
     if warcraft_rs.is_err() {
         log::warn!("warcraft-rs not found in PATH. Would you like to install it?");
-        if ask_yes_no("Would you run `cargo install warcraft-rs`?") {
+        if ask_yes_no("Would you run `cargo install warcraft-rs v0.3.2`?") {
             Command::new("cargo")
                 .arg("install")
                 .arg("warcraft-rs")
+                .arg("--version")
+                .arg("0.3.2")
                 .status()
                 .expect("Failed to execute `cargo install warcraft-rs`");
         }
@@ -110,29 +112,51 @@ fn extract_dbc<P: AsRef<Path>>(dbc_folder_path: P) {
         fs::create_dir_all(dbc_folder_path).expect("Failed to create DBC folder");
     }
 
-    let extract_dbc_args = [
-        "mpq",
-        "extract",
-        "-f",
-        "dbc",
-        "--output",
-        dbc_folder_path.to_str().unwrap(),
-    ];
     let wotlk_data_path = get_wotlk_path().join("Data");
     let wotlk_mpqs = get_mpq_paths(&wotlk_data_path);
 
-    for wotlk_mpq in wotlk_mpqs {
+    for wotlk_mpq in &wotlk_mpqs {
         let wotlk_mpq_path = wotlk_data_path.join(&wotlk_mpq);
-        log::info!("Extracting DBC from {}", wotlk_mpq_path.display());
+        log::info!("Scanning DBCs in {}", wotlk_mpq_path.display());
 
-        let status = Command::new("warcraft-rs")
-            .args(extract_dbc_args)
+        let dbc_files_output = Command::new(&warcraft_rs_path)
+            .arg("mpq")
+            .arg("list")
             .arg(&wotlk_mpq)
+            .arg("--filter")
+            .arg("*.dbc")
             .current_dir(&wotlk_data_path)
-            .status()
-            .expect("Failed to execute `warcraft-rs`");
+            .output()
+            .expect("Failed to execute `warcraft-rs` to list DBC files");
+        if !dbc_files_output.status.success() {
+            log::error!(
+                "warcraft-rs failed to list DBC files with exit code: {}",
+                dbc_files_output.status
+            );
+            exit(1);
+        }
+
+        let dbc_output_str = String::from_utf8_lossy(&dbc_files_output.stdout);
+        let dbc_files: Vec<&str> = dbc_output_str
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .collect();
+
+        let status = Command::new(&warcraft_rs_path)
+                .arg("mpq")
+                .arg("extract")
+                .arg(&wotlk_mpq)
+                .args(&dbc_files)
+                .arg("--output")
+                .arg(dbc_folder_path)
+                .current_dir(&wotlk_data_path)
+                .status()
+                .expect("Failed to execute `warcraft-rs` to extract DBC files");
         if !status.success() {
-            log::error!("warcraft-rs failed with exit code: {}", status);
+            log::error!(
+                "warcraft-rs failed to extract DBC files with exit code: {}",
+                status
+            );
             exit(1);
         }
     }
