@@ -74,6 +74,12 @@ The setup script:
 Running the world/auth servers works exactly the same way as the normal installation process, using `cargo run` in the `auth_server` and `world_server` folders.
 Alternatively, if you just need to bring up a server quickly and don't need to input any commands or debug, you can use `launch.sh` in the root folder to run the auth and world servers in the same terminal.
 
+To enable the repository-provided pre-commit hook, run:
+
+```sh
+git config core.hooksPath .githooks
+```
+
 ## Console Commands
 Both the authentication server and the world server accept console commands to be typed while they're running. This is useful to control certain aspects of the servers and databases, without having to resort to third-party database editing tools. Currently available console commands are:
 
