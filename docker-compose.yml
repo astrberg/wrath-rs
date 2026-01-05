@@ -1,11 +1,9 @@
-version: '3.1'
-
 services:
   db:
     image: mariadb:lts
     restart: always
     environment:
-      MARIADB_ROOT_PASSWORD: CHANGE_ME 
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
     volumes:
       - wrath-rs-database:/var/lib/mysql
     ports:
