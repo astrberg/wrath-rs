@@ -1,6 +1,7 @@
 use crate::item_instance::DBItemInstance;
 use anyhow::Result;
 use sqlx::{MySql, QueryBuilder};
+
 #[derive(Debug)]
 pub struct DBCharacterEquipmentDisplayInfo {
     pub slot_id: u8,
@@ -10,16 +11,41 @@ pub struct DBCharacterEquipmentDisplayInfo {
 }
 
 impl super::RealmDatabase {
-    pub async fn get_all_character_equipment_display_info(&self, character_id: u32) -> Result<Vec<DBCharacterEquipmentDisplayInfo>> {
-        let res = sqlx::query_as!(
-            DBCharacterEquipmentDisplayInfo,
-"SELECT character_equipment.slot_id, character_equipment.enchant, item_template.inventory_type, item_template.displayid FROM character_equipment LEFT JOIN item_template ON character_equipment.item = item_template.id WHERE character_equipment.character_id = ?",
+    pub async fn get_all_character_equipment_display_info(
+        &self,
+        character_id: u32,
+        game_db: &wrath_game_db::GameDatabase,
+    ) -> Result<Vec<DBCharacterEquipmentDisplayInfo>> {
+        let equipment: Vec<_> = sqlx::query!(
+            "SELECT slot_id, item, enchant FROM character_equipment WHERE character_id = ? AND item IS NOT NULL",
             character_id
         )
         .fetch_all(&self.connection_pool)
         .await?;
 
-        Ok(res)
+        if equipment.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Collect all item IDs to fetch their templates in bulk
+        let item_ids: Vec<u32> = equipment.iter().map(|e| e.item.unwrap()).collect();
+        let item_templates = game_db.get_multiple_item_templates(&item_ids).await?;
+        let item_map: std::collections::HashMap<u32, _> = item_templates.into_iter().map(|item| (item.id, item)).collect();
+        let result = equipment
+            .into_iter()
+            .map(|equip| {
+                let item_id = equip.item.unwrap();
+                let template = item_map.get(&item_id);
+                DBCharacterEquipmentDisplayInfo {
+                    slot_id: equip.slot_id,
+                    inventory_type: template.map(|t| t.inventory_type),
+                    enchant: equip.enchant,
+                    displayid: template.map(|t| t.displayid),
+                }
+            })
+            .collect();
+
+        Ok(result)
     }
 
     pub async fn give_character_start_equipment(
@@ -43,7 +69,7 @@ impl super::RealmDatabase {
                 Some(DBItemInstance {
                     character_id,
                     slot_id: slot_id as u8,
-                    item: item as u32,
+                    item: Some(item as u32),
                     enchant: None,
                 })
             } else {

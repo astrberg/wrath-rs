@@ -1,6 +1,7 @@
 use crate::{character::character_manager::CharacterManager, prelude::*};
 use instance_manager::InstanceManager;
 use std::sync::Arc;
+use wrath_game_db::GameDatabase;
 use wrath_realm_db::RealmDatabase;
 
 pub mod game_object;
@@ -18,13 +19,15 @@ pub mod prelude {
 
 pub struct World {
     instance_manager: InstanceManager,
+    game_db: Arc<GameDatabase>,
     realm_db: Arc<RealmDatabase>,
 }
 
 impl World {
-    pub fn new(realm_db: Arc<RealmDatabase>) -> Self {
+    pub fn new(game_db: Arc<GameDatabase>, realm_db: Arc<RealmDatabase>) -> Self {
         Self {
             instance_manager: InstanceManager::new(),
+            game_db,
             realm_db,
         }
     }
@@ -35,6 +38,10 @@ impl World {
 
     pub fn get_instance_manager_mut(&mut self) -> &mut InstanceManager {
         &mut self.instance_manager
+    }
+
+    pub fn get_game_database(&self) -> Arc<GameDatabase> {
+        self.game_db.clone()
     }
 
     pub fn get_realm_database(&self) -> Arc<RealmDatabase> {

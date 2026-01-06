@@ -18,7 +18,7 @@ pub struct DBAreaTriggerTeleport {
     pub target_orientation: f32,
 }
 
-impl super::RealmDatabase {
+impl super::GameDatabase {
     pub async fn get_areatrigger_teleport(&self, id: u32) -> Result<DBAreaTriggerTeleport> {
         let res = sqlx::query_as!(DBAreaTriggerTeleport, "SELECT * FROM areatrigger_teleport WHERE id = ?", id)
             .fetch_one(&self.connection_pool)

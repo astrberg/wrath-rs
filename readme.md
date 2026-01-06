@@ -14,7 +14,9 @@ Install Rust and clone the repo. In order to run the servers, wrath-rs requires 
 ### Manual Database Setup
 Get a MySQL server up and running. Install `cargo sqlx` by following [these instructions](https://github.com/launchbadge/sqlx/tree/master/sqlx-cli)
 
-Navigate into the `databases/wrath-auth-db` folder, copy the `.env.template` file into `.env` and open the `.env` file with your favourite text editor. Change the connection data to match your local MySQL server. Create the database and run migrations through `sqlx-cli` commands. 
+**Step 1: Set up the authentication database**
+
+Navigate into the `databases/wrath-auth-db` folder, copy the `.env.template` file into `.env` and modify it to match your MySQL server configuration.
 ```
 cd databases/wrath-auth-db
 cp .env.template .env
@@ -22,7 +24,30 @@ cp .env.template .env
 cargo sqlx database create
 cargo sqlx migrate run
 ```
-With your favourite database browser you can now verify that the authentication database has been created and some testing accounts have been inserted to get you started. Repeat this process for the `databases/wrath-realm-db` folder. Verify that also the world database has been set up.
+The authentication database is now created with some test accounts inserted.
+
+**Step 2: Set up the game database**
+
+Navigate to the `databases/wrath-game-db` folder and repeat the setup process.
+```
+cd ../wrath-game-db
+cp .env.template .env
+#modify .env file to match your database setup
+cargo sqlx database create
+cargo sqlx migrate run
+```
+The game database contains shared static data (item templates, area triggers, etc.) that can be used by multiple realms.
+
+**Step 3: Set up the realm database**
+
+Navigate to the `databases/wrath-realm-db` folder and complete the final database setup.
+```
+cd ../wrath-realm-db
+cp .env.template .env
+#modify .env file to match your database setup
+cargo sqlx database create
+cargo sqlx migrate run
+```
 
 ### Compiling the project
 Navigate to the `auth_server` folder, set up the `.env` file from provided `.env.template` and you are ready to compile and run the Authentication server.
@@ -69,7 +94,7 @@ The setup script:
 - Checks for all necessary pre-requisites (and attempts to automatically install sqlx-cli if needed).
 - Sets a user-defined DB root password across all .env files, and in the MariaDB container.
 - Deletes any pre-existing docker volumes (if run with `--wipe`).
-- Runs the auth/world migrations against the new DB.
+- Runs the auth/game/realm migrations against the new DB.
 
 Running the world/auth servers works exactly the same way as the normal installation process, using `cargo run` in the `auth_server` and `world_server` folders.
 Alternatively, if you just need to bring up a server quickly and don't need to input any commands or debug, you can use `launch.sh` in the root folder to run the auth and world servers in the same terminal.

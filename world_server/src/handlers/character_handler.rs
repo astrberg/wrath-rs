@@ -39,7 +39,11 @@ pub async fn handle_cmsg_char_enum(client_manager: &ClientManager, world: &World
     let mut characters_to_send = Vec::<wow_world_messages::wrath::Character>::new();
     for character in db_characters {
         let equipment: HashMap<u8, wrath_realm_db::character_equipment::DBCharacterEquipmentDisplayInfo> = {
-            let equipped_items = world.get_realm_database().get_all_character_equipment_display_info(character.id).await?;
+            let game_db = world.get_game_database();
+            let equipped_items = world
+                .get_realm_database()
+                .get_all_character_equipment_display_info(character.id, &game_db)
+                .await?;
             let mut hashmap = HashMap::default();
             for item in equipped_items {
                 hashmap.insert(item.slot_id, item);
@@ -115,10 +119,11 @@ pub async fn handle_cmsg_char_enum(client_manager: &ClientManager, world: &World
 pub async fn handle_cmsg_char_create(client_manager: &ClientManager, client_id: SocketAddr, world: &World, data: &CMSG_CHAR_CREATE) -> Result<()> {
     let client = client_manager.get_authenticated_client(client_id)?;
     let account_id = client.data.account_id;
+    let game_db = world.get_game_database();
     let realm_db = world.get_realm_database();
 
     let create_params = {
-        let player_create_info = realm_db.get_player_create_info(data.race.as_int(), data.class.as_int()).await?;
+        let player_create_info = game_db.get_playercreateinfo(data.race.as_int(), data.class.as_int()).await?;
 
         let x = player_create_info.position_x;
         let y = player_create_info.position_y;

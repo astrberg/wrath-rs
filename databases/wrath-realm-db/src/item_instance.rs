@@ -3,7 +3,7 @@ use anyhow::Result;
 pub struct DBItemInstance {
     pub character_id: u32,
     pub slot_id: u8,
-    pub item: u32,
+    pub item: Option<u32>,
     pub enchant: Option<u32>,
 }
 

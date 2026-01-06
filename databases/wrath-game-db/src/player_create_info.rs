@@ -11,8 +11,8 @@ pub struct DBPlayerCreateInfo {
     pub orientation: f32,
 }
 
-impl super::RealmDatabase {
-    pub async fn get_player_create_info(&self, race: u8, class: u8) -> Result<DBPlayerCreateInfo> {
+impl super::GameDatabase {
+    pub async fn get_playercreateinfo(&self, race: u8, class: u8) -> Result<DBPlayerCreateInfo> {
         let res = sqlx::query_as!(
             DBPlayerCreateInfo,
             "SELECT * FROM playercreateinfo WHERE race = ? AND class = ?",

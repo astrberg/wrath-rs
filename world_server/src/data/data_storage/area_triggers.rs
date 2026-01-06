@@ -4,7 +4,7 @@ use wow_dbc::{
     wrath_tables::{area_trigger::AreaTriggerKey, map::MapKey},
     DbcTable,
 };
-use wrath_realm_db::{areatrigger_teleport::DBAreaTriggerTeleport, RealmDatabase};
+use wrath_game_db::GameDatabase;
 
 use crate::prelude::*;
 
@@ -24,7 +24,7 @@ pub enum AreaTriggerShape {
 
 #[derive(Debug)]
 pub enum AreaTriggerPurpose {
-    Teleport(DBAreaTriggerTeleport),
+    Teleport(wrath_game_db::DBAreaTriggerTeleport),
     RestedArea,
     Unknown,
 }
@@ -41,7 +41,7 @@ pub struct AreaTrigger {
 }
 
 impl super::DataStorage {
-    pub(super) async fn load_area_triggers(&mut self, dbc_path: impl Into<&str>, realm_db: Arc<RealmDatabase>) -> Result<()> {
+    pub(super) async fn load_area_triggers(&mut self, dbc_path: impl Into<&str>, game_db: Arc<GameDatabase>) -> Result<()> {
         let mut area_triggers_local: Option<wow_dbc::wrath_tables::area_trigger::AreaTrigger> = None;
         super::load_standard_dbc(dbc_path, &mut area_triggers_local).await?;
 
@@ -58,9 +58,9 @@ impl super::DataStorage {
                     })
                 };
 
-                let purpose = if let Ok(teleport_data) = realm_db.get_areatrigger_teleport(areatrigger.id.id as u32).await {
+                let purpose = if let Ok(teleport_data) = game_db.get_areatrigger_teleport(areatrigger.id.id as u32).await {
                     AreaTriggerPurpose::Teleport(teleport_data)
-                } else if let Ok(_rested_area_data) = realm_db.get_areatrigger_rested_zone(areatrigger.id.id as u32).await {
+                } else if let Ok(_rested_area_data) = game_db.get_areatrigger_rested_zone(areatrigger.id.id as u32).await {
                     AreaTriggerPurpose::RestedArea
                 } else {
                     AreaTriggerPurpose::Unknown
