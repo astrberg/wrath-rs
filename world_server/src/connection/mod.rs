@@ -84,7 +84,7 @@ impl Connection {
 
     /// Gracefully terminate: inform the manager so it can clean up any retained session state.
     pub async fn disconnect(&mut self) -> Result<()> {
-        let addr = self.stream.local_addr().unwrap();
+        let addr = self.stream.peer_addr().unwrap();
         info!("Disconnecting client {addr}");
         // Let the client manager know that this client is disconnecting
         self.client_manager_sender.send_async(ClientEvent::Disconnected { addr }).await?;
@@ -93,7 +93,7 @@ impl Connection {
 
     /// Entry point for a newly accepted socket: run handshake + bidirectional event loop + teardown.
     pub async fn run(mut self, auth_db: Arc<AuthDatabase>) {
-        let addr = self.stream.local_addr().unwrap();
+        let addr = self.stream.peer_addr().unwrap();
         info!("New connection from {addr}");
         if let Err(e) = self.update(auth_db).await {
             error!("Error in client update {addr}: {e:?}");
@@ -114,7 +114,7 @@ impl Connection {
         let account_id = handle_cmsg_auth_session(self, proof_seed, &auth_session_packet, auth_db).await?;
 
         // Then, advertise the new connection to the client manager
-        let addr = self.stream.local_addr()?;
+        let addr = self.stream.peer_addr()?;
         let connection_event = ClientEvent::Connected {
             addr,
             account_id,

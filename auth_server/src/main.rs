@@ -79,7 +79,7 @@ async fn main() -> Result<()> {
 /// - Channels decouple I/O from state handling and avoid mutex contention.
 /// - The client manager serializes all state transitions on a single task.
 async fn handle_incoming_connection(mut stream: TcpStream, client_manager_sender: Sender<ClientEvent>) -> Result<()> {
-    let addr = stream.local_addr()?;
+    let addr = stream.peer_addr()?;
     let (client_sender, client_receiver) = flume::unbounded();
     let connection_event = ClientEvent::Connection { addr, client_sender };
     client_manager_sender.send_async(connection_event).await?;
