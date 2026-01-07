@@ -144,7 +144,7 @@ pub struct DBItemTemplate {
     pub extra_flags: u8,
 }
 
-impl super::RealmDatabase {
+impl super::GameDatabase {
     pub async fn get_item_template(&self, item_id: u32) -> Result<DBItemTemplate> {
         let res = sqlx::query!("SELECT * FROM item_template WHERE id = ?", item_id,)
             .fetch_one(&self.connection_pool)
@@ -313,5 +313,19 @@ impl super::RealmDatabase {
         //TODO: fill vecs granted_stats, damage, spell_procs and sockets
 
         Ok(item)
+    }
+
+    pub async fn get_multiple_item_templates(&self, item_ids: &[u32]) -> Result<Vec<DBItemTemplate>> {
+        if item_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut items = Vec::new();
+        for &item_id in item_ids {
+            if let Ok(item) = self.get_item_template(item_id).await {
+                items.push(item);
+            }
+        }
+        Ok(items)
     }
 }

@@ -48,9 +48,12 @@ sed -E -i "s/AUTH_DATABASE_URL=.+/AUTH_DATABASE_URL=\"mysql:\/\/root:$root_passw
 sed -E -i "s/DATABASE_URL=.+/DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_auth\"/g" databases/wrath-auth-db/.env
 
 cp world_server/.env.template world_server/.env
+cp databases/wrath-game-db/.env.template databases/wrath-game-db/.env
 cp databases/wrath-realm-db/.env.template databases/wrath-realm-db/.env
 sed -E -i "s/AUTH_DATABASE_URL=.+/AUTH_DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_auth\"/g" world_server/.env
+sed -E -i "s/GAME_DATABASE_URL=.+/GAME_DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_game\"/g" world_server/.env
 sed -E -i "s/REALM_DATABASE_URL=.+/REALM_DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_realm\"/g" world_server/.env
+sed -E -i "s/DATABASE_URL=.+/DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_game\"/g" databases/wrath-game-db/.env
 sed -E -i "s/DATABASE_URL=.+/DATABASE_URL=\"mysql:\/\/root:$root_password@localhost\/wrath_realm\"/g" databases/wrath-realm-db/.env
 
 # Delete any pre-existing DB volumes.
@@ -63,13 +66,23 @@ if ! docker-compose up -d db --wait; then
     exit 1
 fi
 
-# Run the migrations in each DB folder.
+cd "$WRATH_RS_DIR/databases/wrath-realm-db"
+cargo sqlx database drop
+
+cd "$WRATH_RS_DIR/databases/wrath-game-db"
+cargo sqlx database drop
+
 cd "$WRATH_RS_DIR/databases/wrath-auth-db"
 cargo sqlx database drop
+
+cd "$WRATH_RS_DIR/databases/wrath-auth-db"
+cargo sqlx database create
+cargo sqlx migrate run
+
+cd "$WRATH_RS_DIR/databases/wrath-game-db"
 cargo sqlx database create
 cargo sqlx migrate run
 
 cd "$WRATH_RS_DIR/databases/wrath-realm-db"
-cargo sqlx database drop
 cargo sqlx database create
 cargo sqlx migrate run

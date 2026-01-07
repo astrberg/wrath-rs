@@ -28,7 +28,7 @@
         "name": "item",
         "type_info": {
           "type": "Long",
-          "flags": "NOT_NULL | UNSIGNED",
+          "flags": "MULTIPLE_KEY | UNSIGNED",
           "char_set": 63,
           "max_size": 10
         }
@@ -50,7 +50,7 @@
     "nullable": [
       false,
       false,
-      false,
+      true,
       true
     ]
   },

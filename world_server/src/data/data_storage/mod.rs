@@ -2,7 +2,7 @@ use crate::prelude::*;
 use smol::io::{AsyncReadExt, BufReader};
 use std::{path::PathBuf, sync::Arc};
 use wow_dbc::wrath_tables::{area_trigger::AreaTriggerKey, chr_classes::ChrClasses, chr_races::ChrRaces};
-use wrath_realm_db::RealmDatabase;
+use wrath_game_db::GameDatabase;
 
 mod area_triggers;
 pub use area_triggers::*;
@@ -50,14 +50,14 @@ macro_rules! define_dbc_getter {
 }
 
 impl DataStorage {
-    pub async fn load(&mut self, realm_db: Arc<RealmDatabase>) -> Result<()> {
+    pub async fn load(&mut self, game_db: Arc<GameDatabase>) -> Result<()> {
         let dbc_path = &*std::env::var("DBC_FOLDER_PATH")?;
         info!("Loading DBC files from folder: {}", dbc_path);
         load_standard_dbc(dbc_path, &mut self.dbc_chr_races).await?;
         load_standard_dbc(dbc_path, &mut self.dbc_chr_classes).await?;
         load_standard_dbc(dbc_path, &mut self.dbc_chr_map).await?;
         load_standard_dbc(dbc_path, &mut self.dbc_char_start_outfit).await?;
-        self.load_area_triggers(dbc_path, realm_db).await?;
+        self.load_area_triggers(dbc_path, game_db).await?;
         info!("Finished loading DBC files");
         info!("Loading SQL data");
         info!("Loading item templates");

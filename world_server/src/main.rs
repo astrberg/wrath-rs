@@ -13,6 +13,7 @@ use smol_macros::main;
 use time::macros::format_description;
 use tracing_subscriber::{fmt::time::UtcTime, EnvFilter};
 use wrath_auth_db::AuthDatabase;
+use wrath_game_db::GameDatabase;
 use wrath_realm_db::RealmDatabase;
 
 mod auth;
@@ -66,16 +67,19 @@ async fn main() -> Result<()> {
     let auth_database = AuthDatabase::new(&std::env::var("AUTH_DATABASE_URL")?, db_connect_timeout).await?;
     let auth_database_ref = std::sync::Arc::new(auth_database);
 
+    let game_database = GameDatabase::new(&std::env::var("GAME_DATABASE_URL")?, db_connect_timeout).await?;
+    let game_database_ref = std::sync::Arc::new(game_database);
+
     let realm_database = RealmDatabase::new(&std::env::var("REALM_DATABASE_URL")?, db_connect_timeout).await?;
     let realm_database_ref = std::sync::Arc::new(realm_database);
 
     let mut data_storage = data::DataStorage::default();
-    data_storage.load(realm_database_ref.clone()).await?;
+    data_storage.load(game_database_ref.clone()).await?;
     let data_storage = std::sync::Arc::new(data_storage);
 
     smol::spawn(auth::auth_server_heartbeats()).detach();
 
-    let mut world = world::World::new(realm_database_ref);
+    let mut world = world::World::new(game_database_ref, realm_database_ref);
     let mut character_manager = CharacterManager::new();
 
     let mut client_manager = ClientManager::new(auth_database_ref.clone(), data_storage);

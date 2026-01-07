@@ -1,5 +1,5 @@
 [package]
-name = "wrath-realm-db"
+name = "wrath-game-db"
 version = "0.1.0"
 authors = ["Victov <victor.veldstra@gmail.com>"]
 edition = "2021"
@@ -9,4 +9,3 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 sqlx = { workspace = true }
-wrath-game-db = { path = "../wrath-game-db" }
