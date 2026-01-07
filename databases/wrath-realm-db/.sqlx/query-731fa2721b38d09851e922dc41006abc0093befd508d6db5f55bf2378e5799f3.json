@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE characters SET map = ?, zone = ?, x = ?, y = ?, z = ?, o = ?, playtime_total = ?, playtime_level = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "731fa2721b38d09851e922dc41006abc0093befd508d6db5f55bf2378e5799f3"
+}

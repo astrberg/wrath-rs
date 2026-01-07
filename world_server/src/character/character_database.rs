@@ -44,6 +44,7 @@ impl super::Character {
                 y: db_entry.y,
                 z: db_entry.z,
             },
+            orientation: db_entry.o,
             ..Default::default()
         };
 

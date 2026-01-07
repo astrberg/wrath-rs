@@ -123,7 +123,7 @@ pub async fn handle_cmsg_char_create(client_manager: &ClientManager, client_id: 
     let realm_db = world.get_realm_database();
 
     let create_params = {
-        let player_create_info = game_db.get_playercreateinfo(data.race.as_int(), data.class.as_int()).await?;
+        let player_create_info = game_db.get_player_create_info(data.race.as_int(), data.class.as_int()).await?;
 
         let x = player_create_info.position_x;
         let y = player_create_info.position_y;
