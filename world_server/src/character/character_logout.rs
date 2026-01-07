@@ -60,6 +60,8 @@ impl super::Character {
             return Ok(());
         }
 
+        self.persist_position_and_playtime(world).await?;
+
         world
             .get_instance_manager_mut()
             .try_get_map_for_character_mut(self)

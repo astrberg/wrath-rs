@@ -14,6 +14,7 @@ use std::sync::{Arc, Weak};
 use wow_world_messages::wrath::{
     ActionButton, Area, Class, Gender, Map, MovementInfo, ObjectType, Power, Race, RelationType, UnitStandState, UpdateMask, UpdatePlayer,
 };
+use wrath_realm_db::character::DBCharacterUpdate;
 use wrath_realm_db::RealmDatabase;
 
 mod character_cinematic;
@@ -110,6 +111,34 @@ impl Character {
             equipped_items: GameplayCharacterInventory::new(),
             bag_items: BagInventory::default(),
         }
+    }
+
+    fn update_playtime_now(&mut self) {
+        let unix_time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as u32;
+
+        let delta_seconds = unix_time - self.last_playtime_calculation_timestamp;
+        self.seconds_played_total += delta_seconds;
+        self.seconds_played_at_level += delta_seconds;
+        self.last_playtime_calculation_timestamp = unix_time;
+    }
+
+    pub(crate) async fn persist_position_and_playtime(&mut self, world: &World) -> Result<()> {
+        self.update_playtime_now();
+
+        let realm_database = world.get_realm_database();
+        realm_database
+            .update_character_position(&DBCharacterUpdate {
+                id: self.get_guid().guid() as u32,
+                map: self.map.as_int() as u16,
+                zone: self.area.as_int() as u16,
+                x: self.movement_info.position.x,
+                y: self.movement_info.position.y,
+                z: self.movement_info.position.z,
+                o: self.movement_info.orientation,
+                playtime_total: self.seconds_played_total,
+                playtime_level: self.seconds_played_at_level,
+            })
+            .await
     }
 
     pub fn get_sender(&self) -> flume::Sender<wow_world_messages::wrath::Object> {

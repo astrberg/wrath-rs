@@ -84,7 +84,9 @@ pub async fn handle_cmsg_messagechat(
         CMSG_MESSAGECHAT_ChatType::Whisper { target_player } => {
             handle_whisper(character, target_player, client_manager, character_manager, packet).await?
         }
-        _ => todo!(),
+        _ => {
+            warn!("Unhandled chat type: {:?}", packet.chat_type);
+        }
     };
 
     Ok(())

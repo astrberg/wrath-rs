@@ -53,6 +53,18 @@ pub struct DBCharacterCreateParameters {
     pub o: f32,
 }
 
+pub struct DBCharacterUpdate {
+    pub id: u32,
+    pub map: u16,
+    pub zone: u16,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub o: f32,
+    pub playtime_total: u32,
+    pub playtime_level: u32,
+}
+
 impl super::RealmDatabase {
     pub async fn get_characters_for_account(&self, account_id: u32) -> Result<Vec<DBCharacter>> {
         let res = sqlx::query_as!(DBCharacter, "SELECT * FROM characters WHERE account_id = ?", account_id)
@@ -128,5 +140,23 @@ impl super::RealmDatabase {
         .await?;
 
         Ok(res.rows_affected() > 0)
+    }
+
+    pub async fn update_character_position(&self, update: &DBCharacterUpdate) -> Result<()> {
+        sqlx::query!(
+            "UPDATE characters SET map = ?, zone = ?, x = ?, y = ?, z = ?, o = ?, playtime_total = ?, playtime_level = ? WHERE id = ?",
+            update.map,
+            update.zone,
+            update.x,
+            update.y,
+            update.z,
+            update.o,
+            update.playtime_total,
+            update.playtime_level, //TODO: when leveling up, reset playtime_level to 0
+            update.id
+        )
+        .execute(&self.connection_pool)
+        .await?;
+        Ok(())
     }
 }

@@ -83,7 +83,7 @@ impl ClientManager {
         self.clients.remove(&client_id)
     }
 
-    async fn cleanup_disconnected_clients(&mut self, character_manager: &CharacterManager, world: &mut World) -> Result<()> {
+    async fn cleanup_disconnected_clients(&mut self, character_manager: &mut CharacterManager, world: &mut World) -> Result<()> {
         let to_remove = {
             let mut result = vec![];
             let clients = &mut self.clients;
@@ -95,6 +95,13 @@ impl ClientManager {
                     data.client_state.clone()
                 };
                 if client_state == ClientState::DisconnectPendingCleanup {
+                    // Save character data before disconnecting
+                    if let Some(guid) = client.data.active_character {
+                        if let Ok(character) = character_manager.get_character_mut(guid) {
+                            let _ = character.persist_position_and_playtime(world).await;
+                        }
+                    }
+
                     world
                         .get_instance_manager_mut()
                         .handle_client_disconnected(client, character_manager)
