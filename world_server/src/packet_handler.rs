@@ -139,9 +139,9 @@ impl PacketHandler {
                 handle_cmsg_name_query(client_manager, character_manager, packet.client_id, world, data).await
             }
             ClientOpcodeMessage::CMSG_TUTORIAL_FLAG(data) => {
-                handle_cmsg_tutorial_flag(client_manager, character_manager, packet.client_id, data).await
+                handle_cmsg_tutorial_flag(client_manager, character_manager, world, packet.client_id, data).await
             }
-            ClientOpcodeMessage::CMSG_TUTORIAL_RESET => handle_cmsg_tutorial_reset(client_manager, character_manager, packet.client_id).await,
+            ClientOpcodeMessage::CMSG_TUTORIAL_RESET => handle_cmsg_tutorial_reset(client_manager, character_manager, world, packet.client_id).await,
             ClientOpcodeMessage::CMSG_SET_SELECTION(data) => {
                 handle_cmsg_set_selection(client_manager, character_manager, packet.client_id, data).await
             }
