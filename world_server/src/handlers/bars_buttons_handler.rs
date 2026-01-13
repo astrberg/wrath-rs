@@ -6,7 +6,7 @@ use crate::character::character_manager::CharacterManager;
 use crate::client_manager::ClientManager;
 use crate::prelude::*;
 
-pub async fn handle_csmg_set_actionbar_toggles(
+pub async fn handle_cmsg_set_actionbar_toggles(
     client_manager: &ClientManager,
     character_manager: &mut CharacterManager,
     client_id: SocketAddr,

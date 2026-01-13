@@ -14,7 +14,7 @@ use wow_world_messages::wrath::{
 use wrath_auth_db::DBAccountData;
 use wrath_realm_db::RealmDatabase;
 
-pub async fn handle_csmg_ready_for_account_data_times(client_manager: &ClientManager, packet: &PacketToHandle) -> Result<()> {
+pub async fn handle_cmsg_ready_for_account_data_times(client_manager: &ClientManager, packet: &PacketToHandle) -> Result<()> {
     let client = client_manager.get_authenticated_client(packet.client_id)?;
 
     let account_id = client.data.account_id;
@@ -99,7 +99,7 @@ pub async fn send_character_account_data_times(realm_database: &RealmDatabase, c
     send_account_data_times(&character.connection_sender, CacheMask::PerCharacterCache, masked_data).await
 }
 
-pub async fn handle_csmg_update_account_data(
+pub async fn handle_cmsg_update_account_data(
     client_manager: &ClientManager,
     client_id: SocketAddr,
     world: &World,

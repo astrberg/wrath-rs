@@ -9,14 +9,14 @@ pub use login_handler::send_smsg_logout_complete;
 
 mod account_data_handler;
 pub use account_data_handler::create_empty_character_account_data_rows;
+pub use account_data_handler::handle_cmsg_ready_for_account_data_times;
 pub use account_data_handler::handle_cmsg_request_account_data;
-pub use account_data_handler::handle_csmg_ready_for_account_data_times;
-pub use account_data_handler::handle_csmg_update_account_data;
+pub use account_data_handler::handle_cmsg_update_account_data;
 pub use account_data_handler::send_character_account_data_times;
 
 mod bars_buttons_handler;
 pub use bars_buttons_handler::handle_cmsg_set_action_button;
-pub use bars_buttons_handler::handle_csmg_set_actionbar_toggles;
+pub use bars_buttons_handler::handle_cmsg_set_actionbar_toggles;
 
 mod character_handler;
 pub use character_handler::handle_cmsg_autoequip_item;
@@ -32,8 +32,8 @@ pub use character_handler::send_bind_update;
 pub use character_handler::send_verify_world;
 
 mod cinematics_handler;
-pub use cinematics_handler::handle_csmg_complete_cinematic;
-pub use cinematics_handler::handle_csmg_next_cinematic_camera;
+pub use cinematics_handler::handle_cmsg_complete_cinematic;
+pub use cinematics_handler::handle_cmsg_next_cinematic_camera;
 pub use cinematics_handler::send_trigger_cinematic;
 
 mod group_handler;

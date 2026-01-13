@@ -13,7 +13,7 @@ pub async fn send_trigger_cinematic(character: &Character, cinematic_id: Cinemat
     ServerEvent::TriggerCinematic(msg).send_to_character(character).await
 }
 
-pub async fn handle_csmg_next_cinematic_camera(
+pub async fn handle_cmsg_next_cinematic_camera(
     client_manager: &ClientManager,
     character_manager: &mut CharacterManager,
     client_id: SocketAddr,
@@ -23,7 +23,7 @@ pub async fn handle_csmg_next_cinematic_camera(
     character.handle_cinematic_next_camera()
 }
 
-pub async fn handle_csmg_complete_cinematic(
+pub async fn handle_cmsg_complete_cinematic(
     client_manager: &ClientManager,
     character_manager: &mut CharacterManager,
     client_id: SocketAddr,

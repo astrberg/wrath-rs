@@ -62,6 +62,7 @@ impl Client {
         Ok(())
     }
 
+    //TODO: add try_get_active_character that returns Option<Guid>
     pub fn get_active_character(&self) -> Guid {
         self.data.active_character.unwrap()
     }

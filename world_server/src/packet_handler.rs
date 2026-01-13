@@ -35,9 +35,9 @@ impl PacketHandler {
 
         match &*packet.payload {
             ClientOpcodeMessage::CMSG_PLAYER_LOGOUT => handle_cmsg_player_logout(client_manager, character_manager, packet.client_id).await,
-            ClientOpcodeMessage::CMSG_READY_FOR_ACCOUNT_DATA_TIMES => handle_csmg_ready_for_account_data_times(client_manager, &packet).await,
+            ClientOpcodeMessage::CMSG_READY_FOR_ACCOUNT_DATA_TIMES => handle_cmsg_ready_for_account_data_times(client_manager, &packet).await,
             ClientOpcodeMessage::CMSG_UPDATE_ACCOUNT_DATA(data) => {
-                handle_csmg_update_account_data(client_manager, packet.client_id, world, data).await
+                handle_cmsg_update_account_data(client_manager, packet.client_id, world, data).await
             }
             ClientOpcodeMessage::CMSG_REQUEST_ACCOUNT_DATA(data) => {
                 handle_cmsg_request_account_data(client_manager, packet.client_id, world, data).await
@@ -139,9 +139,9 @@ impl PacketHandler {
                 handle_cmsg_name_query(client_manager, character_manager, packet.client_id, world, data).await
             }
             ClientOpcodeMessage::CMSG_TUTORIAL_FLAG(data) => {
-                handle_cmsg_tutorial_flag(client_manager, character_manager, packet.client_id, data).await
+                handle_cmsg_tutorial_flag(client_manager, character_manager, world, packet.client_id, data).await
             }
-            ClientOpcodeMessage::CMSG_TUTORIAL_RESET => handle_cmsg_tutorial_reset(client_manager, character_manager, packet.client_id).await,
+            ClientOpcodeMessage::CMSG_TUTORIAL_RESET => handle_cmsg_tutorial_reset(client_manager, character_manager, world, packet.client_id).await,
             ClientOpcodeMessage::CMSG_SET_SELECTION(data) => {
                 handle_cmsg_set_selection(client_manager, character_manager, packet.client_id, data).await
             }
@@ -158,14 +158,14 @@ impl PacketHandler {
             ClientOpcodeMessage::CMSG_GMTICKET_CREATE(data) => handle_cmsg_gmticket_create(client_manager, packet.client_id, data).await,
             ClientOpcodeMessage::CMSG_GMTICKET_SYSTEMSTATUS => handle_cmsg_gmticket_system_status(client_manager, packet.client_id).await,
             ClientOpcodeMessage::CMSG_NEXT_CINEMATIC_CAMERA => {
-                handle_csmg_next_cinematic_camera(client_manager, character_manager, packet.client_id).await
+                handle_cmsg_next_cinematic_camera(client_manager, character_manager, packet.client_id).await
             }
-            ClientOpcodeMessage::CMSG_COMPLETE_CINEMATIC => handle_csmg_complete_cinematic(client_manager, character_manager, packet.client_id).await,
+            ClientOpcodeMessage::CMSG_COMPLETE_CINEMATIC => handle_cmsg_complete_cinematic(client_manager, character_manager, packet.client_id).await,
             ClientOpcodeMessage::CMSG_REQUEST_RAID_INFO => handle_cmsg_request_raid_info(client_manager, packet.client_id).await,
             ClientOpcodeMessage::CMSG_CONTACT_LIST(data) => handle_cmsg_contact_list(client_manager, character_manager, packet.client_id, data).await,
             ClientOpcodeMessage::CMSG_CALENDAR_GET_NUM_PENDING => handle_cmsg_calendar_get_num_pending(client_manager, packet.client_id).await,
             ClientOpcodeMessage::CMSG_SET_ACTIONBAR_TOGGLES(data) => {
-                handle_csmg_set_actionbar_toggles(client_manager, character_manager, packet.client_id, data).await
+                handle_cmsg_set_actionbar_toggles(client_manager, character_manager, packet.client_id, data).await
             }
             ClientOpcodeMessage::CMSG_ITEM_QUERY_SINGLE(data) => handle_cmsg_item_query_single(client_manager, packet.client_id, world, data).await,
             ClientOpcodeMessage::CMSG_ITEM_NAME_QUERY(data) => handle_cmsg_item_name_query(client_manager, packet.client_id, world, data).await,
