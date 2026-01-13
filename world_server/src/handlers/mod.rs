@@ -43,6 +43,7 @@ mod gm_handler;
 pub use gm_handler::handle_cmsg_gmticket_create;
 pub use gm_handler::handle_cmsg_gmticket_getticket;
 pub use gm_handler::handle_cmsg_gmticket_system_status;
+pub use gm_handler::handle_speed_command;
 
 mod instance_handler;
 pub use instance_handler::send_dungeon_difficulty;
