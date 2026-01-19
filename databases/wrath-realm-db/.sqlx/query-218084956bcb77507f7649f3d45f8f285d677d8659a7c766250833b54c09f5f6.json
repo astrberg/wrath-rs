@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE characters SET tutorial_data = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "218084956bcb77507f7649f3d45f8f285d677d8659a7c766250833b54c09f5f6"
+}

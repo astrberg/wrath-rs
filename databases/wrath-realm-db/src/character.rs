@@ -159,4 +159,11 @@ impl super::RealmDatabase {
         .await?;
         Ok(())
     }
+
+    pub async fn update_character_tutorial_data(&self, character_id: u32, tutorial_data: Vec<u8>) -> Result<()> {
+        sqlx::query!("UPDATE characters SET tutorial_data = ? WHERE id = ?", tutorial_data, character_id)
+            .execute(&self.connection_pool)
+            .await?;
+        Ok(())
+    }
 }

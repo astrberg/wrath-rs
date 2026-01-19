@@ -84,6 +84,14 @@ impl TutorialFlags {
         }
     }
 
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(32);
+        for &flag in &self.flag_data {
+            bytes.extend_from_slice(&flag.to_le_bytes());
+        }
+        bytes
+    }
+
     pub fn reset(&mut self) {
         self.flag_data = [0; 8];
     }
