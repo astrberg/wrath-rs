@@ -15,4 +15,16 @@ impl super::RealmDatabase {
 
         Ok(res)
     }
+
+    pub async fn insert_character_item(&self, character_id: u32, slot_id: u8, item_id: u32) -> Result<()> {
+        sqlx::query!(
+            "INSERT INTO character_equipment (character_id, slot_id, item, enchant) VALUES (?, ?, ?, NULL)",
+            character_id,
+            slot_id,
+            item_id
+        )
+        .execute(&self.connection_pool)
+        .await?;
+        Ok(())
+    }
 }

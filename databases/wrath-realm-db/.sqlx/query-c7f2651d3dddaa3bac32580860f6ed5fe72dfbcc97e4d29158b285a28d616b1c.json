@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT * FROM characters WHERE id = ?",
+  "query": "SELECT id, account_id, name, race, class, gender, skin_color, face, hair_style, hair_color, facial_style, player_flags, at_login_flags, zone, level, map, x, y, z, o, instance_id, bind_zone, bind_map, bind_x, bind_y, bind_z, guild_id, CAST(tutorial_data AS BINARY(32)) AS `tutorial_data!: Vec<u8>`, playtime_total, playtime_level FROM characters WHERE account_id = ?",
   "describe": {
     "columns": [
       {
@@ -275,12 +275,12 @@
       },
       {
         "ordinal": 27,
-        "name": "tutorial_data",
+        "name": "tutorial_data!: Vec<u8>",
         "type_info": {
-          "type": "Blob",
-          "flags": "NOT_NULL | BLOB | BINARY | NO_DEFAULT_VALUE",
+          "type": "VarString",
+          "flags": "BINARY",
           "char_set": 63,
-          "max_size": 255
+          "max_size": 32
         }
       },
       {
@@ -335,10 +335,10 @@
       false,
       false,
       false,
-      false,
+      true,
       false,
       false
     ]
   },
-  "hash": "b78958c68e8db6a764f6b346420a7e145355106b0231685143fa88269d54a74b"
+  "hash": "c7f2651d3dddaa3bac32580860f6ed5fe72dfbcc97e4d29158b285a28d616b1c"
 }

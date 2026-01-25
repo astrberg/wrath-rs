@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO character_equipment (character_id, slot_id, item, enchant) VALUES (?, ?, ?, NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e577ddcd08a3d27f3739da092b54743a0c33291f328e799d1127a55878e697c5"
+}

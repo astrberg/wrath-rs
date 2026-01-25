@@ -113,14 +113,15 @@ impl super::Character {
         let event = ServerEvent::InitialSpells(msg);
         self.connection_sender.send_async(event).await?;
 
-        //TODO: load invetory here
+        // Load all items (equipment + backpack) from database
         realm_database.get_all_character_equipment(character_id).await?.iter().for_each(|x| {
             self.set_item(Some(Item::from(x)), (x.slot_id, INVENTORY_SLOT_BAG_0))
                 .expect("This should never fail in this context");
         });
 
+        // Collect equipment items
         let char_equipment = self.equipped_items.get_all_equipment();
-        let equiped_items = char_equipment
+        let mut all_items: Vec<Object> = char_equipment
             .iter()
             .filter_map(|x| *x)
             .map(|x| Object {
@@ -133,8 +134,12 @@ impl super::Character {
                     object_type: ObjectType::Item,
                 },
             })
-            .collect::<Vec<Object>>();
-        let msg = SMSG_UPDATE_OBJECT { objects: equiped_items };
+            .collect();
+
+        // Collect backpack items
+        all_items.extend(self.bag_items.get_create_objects());
+
+        let msg = SMSG_UPDATE_OBJECT { objects: all_items };
         let event = ServerEvent::UpdateObject(msg);
         self.connection_sender.send_async(event).await?;
         Ok(())

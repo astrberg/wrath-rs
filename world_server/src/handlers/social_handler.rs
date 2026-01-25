@@ -68,7 +68,7 @@ pub async fn handle_cmsg_join_channel(client_manager: &ClientManager, client_id:
 
 pub async fn handle_cmsg_messagechat(
     client_manager: &ClientManager,
-    character_manager: &CharacterManager,
+    character_manager: &mut CharacterManager,
     world: &World,
     client_id: SocketAddr,
     packet: &CMSG_MESSAGECHAT,
@@ -79,7 +79,7 @@ pub async fn handle_cmsg_messagechat(
 
     // Check for GM commands
     if packet.message.starts_with('.') {
-        return handle_gm_command(client_manager, character_manager, client_id, &packet.message).await;
+        return handle_gm_command(client_manager, character_manager, world, client_id, &packet.message).await;
     }
 
     match &packet.chat_type {
@@ -164,7 +164,13 @@ async fn handle_whisper(
     Ok(())
 }
 
-async fn handle_gm_command(client_manager: &ClientManager, character_manager: &CharacterManager, client_id: SocketAddr, message: &str) -> Result<()> {
+async fn handle_gm_command(
+    client_manager: &ClientManager,
+    character_manager: &mut CharacterManager,
+    world: &World,
+    client_id: SocketAddr,
+    message: &str,
+) -> Result<()> {
     let parts: Vec<&str> = message[1..].split_whitespace().collect();
     if parts.is_empty() {
         return Ok(());
@@ -174,6 +180,19 @@ async fn handle_gm_command(client_manager: &ClientManager, character_manager: &C
         "speed" => {
             let speed = parts.get(1).and_then(|s| s.parse::<f32>().ok()).unwrap_or(7.0);
             crate::handlers::handle_speed_command(client_manager, character_manager, client_id, speed).await?;
+        }
+        "additem" => {
+            if let Some(item_id) = parts.get(1).and_then(|s| s.parse::<u32>().ok()) {
+                crate::handlers::handle_additem_command(
+                    client_manager,
+                    character_manager,
+                    world.get_game_database(),
+                    world.get_realm_database(),
+                    client_id,
+                    item_id,
+                )
+                .await?;
+            }
         }
         _ => {
             // Unknown command - silently ignore for now
