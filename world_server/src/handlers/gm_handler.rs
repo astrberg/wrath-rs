@@ -130,11 +130,12 @@ pub async fn handle_additem_command(
     let character = character_manager.get_character_mut(guid)?;
     let character_id = guid.guid() as u32;
 
-    let Some(slot_id) = character.try_add_item_to_backpack(item_id, character_id, &client.connection_sender).await else {
+    let Some(_slot_id) = character
+        .try_add_item_to_backpack(item_id, character_id, &client.connection_sender, Some(&realm_db))
+        .await
+    else {
         return Ok(());
     };
-
-    let _ = realm_db.insert_character_item(character_id, slot_id, item_id).await;
 
     send_system_message(client_manager, character_manager, client_id, &format!("Added item {}", item_id)).await?;
     Ok(())

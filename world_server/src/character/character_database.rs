@@ -113,11 +113,17 @@ impl super::Character {
         let event = ServerEvent::InitialSpells(msg);
         self.connection_sender.send_async(event).await?;
 
-        // Load all items (equipment + backpack) from database
-        realm_database.get_all_character_equipment(character_id).await?.iter().for_each(|x| {
-            self.set_item(Some(Item::from(x)), (x.slot_id, INVENTORY_SLOT_BAG_0))
-                .expect("This should never fail in this context");
-        });
+        // Load items from DB (equipment + backpack); use None to avoid DB writes and send one bulk update afterward.
+        for equipment_item in realm_database.get_all_character_equipment(character_id).await? {
+            self.set_item(
+                Some(Item::from(&equipment_item)),
+                (equipment_item.slot_id, INVENTORY_SLOT_BAG_0),
+                None,
+                None,
+            )
+            .await
+            .expect("This should never fail in this context");
+        }
 
         // Collect equipment items
         let char_equipment = self.equipped_items.get_all_equipment();

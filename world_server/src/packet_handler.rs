@@ -183,7 +183,7 @@ impl PacketHandler {
             ClientOpcodeMessage::CMSG_SET_ACTION_BUTTON(data) => {
                 handle_cmsg_set_action_button(client_manager, character_manager, packet.client_id, data).await
             }
-            _ => bail!("Unhandled opcode"),
+            _ => bail!("Unhandled packet opcode: {:?}", packet.payload),
         }
     }
 }

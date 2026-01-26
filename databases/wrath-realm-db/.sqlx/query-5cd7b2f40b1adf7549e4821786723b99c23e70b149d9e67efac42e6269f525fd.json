@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM character_equipment WHERE character_id = ? AND slot_id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5cd7b2f40b1adf7549e4821786723b99c23e70b149d9e67efac42e6269f525fd"
+}
