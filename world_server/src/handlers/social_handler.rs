@@ -68,7 +68,7 @@ pub async fn handle_cmsg_join_channel(client_manager: &ClientManager, client_id:
 
 pub async fn handle_cmsg_messagechat(
     client_manager: &ClientManager,
-    character_manager: &CharacterManager,
+    character_manager: &mut CharacterManager,
     world: &World,
     client_id: SocketAddr,
     packet: &CMSG_MESSAGECHAT,
@@ -76,6 +76,11 @@ pub async fn handle_cmsg_messagechat(
     let client = client_manager.get_authenticated_client(client_id)?;
     let guid = client.get_active_character();
     let character = character_manager.get_character(guid)?;
+
+    // Check for GM commands
+    if packet.message.starts_with('.') {
+        return handle_gm_command(client_manager, character_manager, world, client_id, &packet.message).await;
+    }
 
     match &packet.chat_type {
         CMSG_MESSAGECHAT_ChatType::Say | CMSG_MESSAGECHAT_ChatType::Yell | CMSG_MESSAGECHAT_ChatType::Emote => {
@@ -156,5 +161,43 @@ async fn handle_whisper(
         let client = client_manager.find_client_from_active_character_guid(sender.get_guid())?;
         client.connection_sender.send_async(event).await?;
     }
+    Ok(())
+}
+
+async fn handle_gm_command(
+    client_manager: &ClientManager,
+    character_manager: &mut CharacterManager,
+    world: &World,
+    client_id: SocketAddr,
+    message: &str,
+) -> Result<()> {
+    let parts: Vec<&str> = message[1..].split_whitespace().collect();
+    if parts.is_empty() {
+        return Ok(());
+    }
+
+    match parts[0].to_lowercase().as_str() {
+        "speed" => {
+            let speed = parts.get(1).and_then(|s| s.parse::<f32>().ok()).unwrap_or(7.0);
+            crate::handlers::handle_speed_command(client_manager, character_manager, client_id, speed).await?;
+        }
+        "additem" => {
+            if let Some(item_id) = parts.get(1).and_then(|s| s.parse::<u32>().ok()) {
+                crate::handlers::handle_additem_command(
+                    client_manager,
+                    character_manager,
+                    world.get_game_database(),
+                    world.get_realm_database(),
+                    client_id,
+                    item_id,
+                )
+                .await?;
+            }
+        }
+        _ => {
+            // Unknown command - silently ignore for now
+        }
+    }
+
     Ok(())
 }

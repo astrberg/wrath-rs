@@ -1,3 +1,4 @@
+use crate::connection::events::ServerEvent;
 use crate::item::item_container::ItemContainer;
 use crate::{
     item::Item,
@@ -11,7 +12,10 @@ use std::{
 };
 use wow_world_base::wrath::ItemSlot;
 use wow_world_messages::wrath::UpdateItem;
-use wow_world_messages::wrath::{InventoryType, VisibleItem, VisibleItemIndex};
+use wow_world_messages::wrath::{
+    InventoryType, MovementBlock, MovementBlock_UpdateFlag, Object, ObjectType, Object_UpdateType, UpdateItemBuilder, UpdateMask, VisibleItem,
+    VisibleItemIndex, SMSG_UPDATE_OBJECT,
+};
 
 //An identifier for the player inventory (the thing ItemSlot models a cell of)
 pub const INVENTORY_SLOT_BAG_0: u8 = 255;
@@ -122,6 +126,23 @@ impl BagInventory {
         } else {
             None
         }
+    }
+
+    pub fn get_create_objects(&self) -> Vec<Object> {
+        self.items
+            .iter()
+            .flatten()
+            .map(|item| Object {
+                update_type: Object_UpdateType::CreateObject {
+                    guid3: item.update_state.object_guid().unwrap(),
+                    mask2: UpdateMask::Item(item.update_state.clone()),
+                    movement2: MovementBlock {
+                        update_flag: MovementBlock_UpdateFlag::empty(),
+                    },
+                    object_type: ObjectType::Item,
+                },
+            })
+            .collect()
     }
 }
 
@@ -239,5 +260,58 @@ impl crate::character::Character {
             }
             (_, _) => todo!("Bags not implemented yet"),
         }
+    }
+
+    // Try to add item to first available backpack slot (BagSlot::Item1-Item16)
+    pub async fn try_add_item_to_backpack(&mut self, item_id: u32, character_id: u32, connection_sender: &flume::Sender<ServerEvent>) -> Option<u8> {
+        let mut added_slot: Option<u8> = None;
+        for slot_id in (BagSlot::Item1 as u8)..=(BagSlot::Item16 as u8) {
+            let bag_slot = BagSlot::try_from(slot_id).unwrap();
+            if self.bag_items[bag_slot].is_some() {
+                continue;
+            }
+
+            let item = Item {
+                update_state: UpdateItemBuilder::new()
+                    .set_object_guid(((character_id as u64) << 32 | slot_id as u64).into())
+                    .set_object_entry(item_id as i32)
+                    .set_object_scale_x(1.0)
+                    .set_item_owner(Guid::new(character_id as u64))
+                    .set_item_contained(Guid::new(character_id as u64))
+                    .set_item_stack_count(1)
+                    .set_item_durability(100)
+                    .set_item_maxdurability(100)
+                    .finalize(),
+            };
+
+            if self.set_item(Some(item), (slot_id, INVENTORY_SLOT_BAG_0)).is_ok() {
+                added_slot = Some(slot_id);
+                break;
+            }
+        }
+
+        // If we added the item, inform the client about it
+        let slot_id = added_slot?;
+        let bag_slot = BagSlot::try_from(slot_id).unwrap();
+        let added_item = self.bag_items[bag_slot].as_ref().unwrap();
+
+        let object = Object {
+            update_type: Object_UpdateType::CreateObject {
+                guid3: added_item.update_state.object_guid().unwrap(),
+                mask2: UpdateMask::Item(added_item.update_state.clone()),
+                movement2: MovementBlock {
+                    update_flag: MovementBlock_UpdateFlag::empty(),
+                },
+                object_type: ObjectType::Item,
+            },
+        };
+
+        let msg = SMSG_UPDATE_OBJECT { objects: vec![object] };
+        let event = ServerEvent::UpdateObject(msg);
+        if connection_sender.send_async(event).await.is_err() {
+            return None;
+        }
+
+        Some(slot_id)
     }
 }

@@ -67,7 +67,11 @@ pub struct DBCharacterUpdate {
 
 impl super::RealmDatabase {
     pub async fn get_characters_for_account(&self, account_id: u32) -> Result<Vec<DBCharacter>> {
-        let res = sqlx::query_as!(DBCharacter, "SELECT * FROM characters WHERE account_id = ?", account_id)
+        let res = sqlx::query_as!(
+            DBCharacter,
+            "SELECT id, account_id, name, race, class, gender, skin_color, face, hair_style, hair_color, facial_style, player_flags, at_login_flags, zone, level, map, x, y, z, o, instance_id, bind_zone, bind_map, bind_x, bind_y, bind_z, guild_id, CAST(tutorial_data AS BINARY(32)) AS `tutorial_data!: Vec<u8>`, playtime_total, playtime_level FROM characters WHERE account_id = ?",
+            account_id
+        )
             .fetch_all(&self.connection_pool)
             .await?;
 
@@ -122,7 +126,11 @@ impl super::RealmDatabase {
     }
 
     pub async fn get_character(&self, character_id: u32) -> Result<DBCharacter> {
-        let res = sqlx::query_as!(DBCharacter, "SELECT * FROM characters WHERE id = ?", character_id)
+        let res = sqlx::query_as!(
+            DBCharacter,
+            "SELECT id, account_id, name, race, class, gender, skin_color, face, hair_style, hair_color, facial_style, player_flags, at_login_flags, zone, level, map, x, y, z, o, instance_id, bind_zone, bind_map, bind_x, bind_y, bind_z, guild_id, CAST(tutorial_data AS BINARY(32)) AS `tutorial_data!: Vec<u8>`, playtime_total, playtime_level FROM characters WHERE id = ?",
+            character_id
+        )
             .fetch_one(&self.connection_pool)
             .await?;
 

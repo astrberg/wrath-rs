@@ -151,6 +151,8 @@ impl Connection {
                         ServerEvent::FeatureSystemStatus(m) => m.astd_send_to_connection(self).await?,
                         ServerEvent::ForceMoveRoot(m) => m.astd_send_to_connection(self).await?,
                         ServerEvent::ForceMoveUnroot(m) => m.astd_send_to_connection(self).await?,
+                        ServerEvent::ForceRunSpeedChange(m) => m.astd_send_to_connection(self).await?,
+                        ServerEvent::ForceRunBackSpeedChange(m) => m.astd_send_to_connection(self).await?,
                         ServerEvent::GMTicketGetTicket(m) => m.astd_send_to_connection(self).await?,
                         ServerEvent::GMTicketSystemStatus(m) => m.astd_send_to_connection(self).await?,
                         ServerEvent::InitialSpells(m) => m.astd_send_to_connection(self).await?,
