@@ -264,7 +264,7 @@ impl crate::character::Character {
                     Self::send_item_update(&item, sender).await;
                 }
 
-                self.equipped_items.try_insert_item(item)?;
+                self.equipped_items.items.insert(equipment_slot, item);
 
                 if let Some(db) = realm_db {
                     let _ = db.delete_character_item(character_id, slot).await;
