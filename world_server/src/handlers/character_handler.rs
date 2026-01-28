@@ -206,7 +206,7 @@ pub async fn handle_cmsg_char_delete(client_manager: &ClientManager, client_id: 
     let account_id = client.data.account_id;
     let realm_db = world.get_realm_database();
 
-    let character_id = data.guid.guid() as u32;
+    let character_id: u32 = data.guid.guid() as u32;
 
     let result = match realm_db.delete_character(character_id, account_id).await {
         Ok(_) => WorldResult::CharDeleteSuccess,
@@ -334,19 +334,27 @@ pub async fn send_action_buttons(character: &Character) -> Result<()> {
 pub async fn handle_cmsg_swap_inv_item(
     client_manager: &ClientManager,
     character_manager: &mut CharacterManager,
-    _world: &World,
+    world: &World,
     client_id: SocketAddr,
     data: &CMSG_SWAP_INV_ITEM,
 ) -> Result<()> {
     let client = client_manager.get_authenticated_client(client_id)?;
     let character = character_manager.get_character_mut(client.get_active_character())?;
+    let realm_db = world.get_realm_database();
+    let connection_sender = &client.connection_sender;
 
     //TODO: Add checks here
     let src = data.destination_slot.as_int();
     let dst = data.source_slot.as_int();
-    let dst_item = character.set_item(None, (dst, INVENTORY_SLOT_BAG_0))?;
-    let src_item = character.set_item(dst_item, (src, INVENTORY_SLOT_BAG_0))?;
-    character.set_item(src_item, (dst, INVENTORY_SLOT_BAG_0))?;
+    let dst_item = character
+        .set_item(None, (dst, INVENTORY_SLOT_BAG_0), Some(&realm_db), Some(connection_sender))
+        .await?;
+    let src_item = character
+        .set_item(dst_item, (src, INVENTORY_SLOT_BAG_0), Some(&realm_db), Some(connection_sender))
+        .await?;
+    character
+        .set_item(src_item, (dst, INVENTORY_SLOT_BAG_0), Some(&realm_db), Some(connection_sender))
+        .await?;
 
     Ok(())
 }
@@ -354,16 +362,27 @@ pub async fn handle_cmsg_swap_inv_item(
 pub async fn handle_cmsg_autoequip_item(
     client_manager: &mut ClientManager,
     character_manager: &mut CharacterManager,
-    _world: &World,
+    world: &World,
     client_id: SocketAddr,
     data: &CMSG_AUTOEQUIP_ITEM,
 ) -> Result<()> {
     let client = client_manager.get_authenticated_client(client_id)?;
     let character = character_manager.get_character_mut(client.get_active_character())?;
+    let realm_db = world.get_realm_database();
+    let connection_sender = &client.connection_sender;
 
-    let previously_equipped_item = character.auto_equip_item_from_bag((data.source_slot, data.source_bag))?;
+    let previously_equipped_item = character
+        .auto_equip_item_from_bag((data.source_slot, data.source_bag), Some(&realm_db), Some(connection_sender))
+        .await?;
 
     //The item that we had equipped (may be None) now goes into that slot
-    character.set_item(previously_equipped_item, (data.source_slot, data.source_bag))?;
+    character
+        .set_item(
+            previously_equipped_item,
+            (data.source_slot, data.source_bag),
+            Some(&realm_db),
+            Some(connection_sender),
+        )
+        .await?;
     Ok(())
 }

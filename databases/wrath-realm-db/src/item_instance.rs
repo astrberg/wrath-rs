@@ -27,4 +27,15 @@ impl super::RealmDatabase {
         .await?;
         Ok(())
     }
+
+    pub async fn delete_character_item(&self, character_id: u32, slot_id: u8) -> Result<()> {
+        sqlx::query!(
+            "DELETE FROM character_equipment WHERE character_id = ? AND slot_id = ?",
+            character_id,
+            slot_id
+        )
+        .execute(&self.connection_pool)
+        .await?;
+        Ok(())
+    }
 }
